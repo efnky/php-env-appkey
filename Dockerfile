@@ -19,7 +19,8 @@ RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 COPY . .
 
-RUN composer dump-autoload --optimize --no-dev && \
+RUN git config --global --add safe.directory /app && \
+    composer dump-autoload --optimize --no-dev && \
     npm run build
 
 RUN php artisan config:cache && \
