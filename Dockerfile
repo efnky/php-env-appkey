@@ -38,12 +38,12 @@ RUN apk add --no-cache \
 
 COPY --from=builder /app /app
 
+COPY --from=builder /app/nginx.conf /etc/nginx/nginx.conf
+COPY --from=builder /app/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 RUN chown -R appuser:appuser /app/storage /app/bootstrap/cache && \
     mkdir -p /var/log/supervisor /run/nginx && \
     chown -R appuser:appuser /var/log/supervisor /run/nginx /var/lib/nginx /var/log/nginx
-
-COPY --from=builder /app/nginx.conf /etc/nginx/nginx.conf
-COPY --from=builder /app/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 8000
 USER appuser
