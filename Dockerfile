@@ -41,72 +41,9 @@ RUN chown -R appuser:appuser /app/storage /app/bootstrap/cache && \
     mkdir -p /var/log/supervisor /run/nginx && \
     chown -R appuser:appuser /var/log/supervisor /run/nginx /var/lib/nginx /var/log/nginx
 
-COPY <<'EOF' /etc/nginx/nginx.conf
-user appuser;
-worker_processes auto;
-pid /run/nginx/nginx.pid;
-error_log /var/log/nginx/error.log warn;
+RUN printf 'user appuser;\nworker_processes auto;\npid /run/nginx/nginx.pid;\nerror_log /var/log/nginx/error.log warn;\n\nevents {\n    worker_connections 1024;\n}\n\nhttp {\n    include /etc/nginx/mime.types;\n    default_type application/octet-stream;\n    access_log /var/log/nginx/access.log;\n    sendfile on;\n    keepalive_timeout 65;\n\n    server {\n        listen 8000;\n        server_name _;\n        root /app/public;\n        index index.php;\n\n        location / {\n            try_files $uri $uri/ /index.php?$query_string;\n        }\n\n        location ~ \\.php$ {\n            fastcgi_pass 127.0.0.1:9000;\n            fastcgi_index index.php;\n            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;\n            include fastcgi_params;\n        }\n\n        location ~ /\\.(?!well-known).* {\n            deny all;\n        }\n    }\n}\n' > /etc/nginx/nginx.conf
 
-events {
-    worker_connections 1024;
-}
-
-http {
-    include /etc/nginx/mime.types;
-    default_type application/octet-stream;
-    access_log /var/log/nginx/access.log;
-    sendfile on;
-    keepalive_timeout 65;
-
-    server {
-        listen 8000;
-        server_name _;
-        root /app/public;
-        index index.php;
-
-        location / {
-            try_files $uri $uri/ /index.php?$query_string;
-        }
-
-        location ~ \.php$ {
-            fastcgi_pass 127.0.0.1:9000;
-            fastcgi_index index.php;
-            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-            include fastcgi_params;
-        }
-
-        location ~ /\.(?!well-known).* {
-            deny all;
-        }
-    }
-}
-EOF
-
-COPY <<'EOF' /etc/supervisor/conf.d/supervisord.conf
-[supervisord]
-nodaemon=true
-user=appuser
-logfile=/var/log/supervisor/supervisord.log
-pidfile=/run/supervisord.pid
-
-[program:php-fpm]
-command=php-fpm --nodaemonize
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-
-[program:nginx]
-command=nginx -g 'daemon off;'
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-EOF
+RUN printf '[supervisord]\nnodaemon=true\nuser=appuser\nlogfile=/var/log/supervisor/supervisord.log\npidfile=/run/supervisord.pid\n\n[program:php-fpm]\ncommand=php-fpm --nodaemonize\nautostart=true\nautorestart=true\nstdout_logfile=/dev/stdout\nstdout_logfile_maxbytes=0\nstderr_logfile=/dev/stderr\nstderr_logfile_maxbytes=0\n\n[program:nginx]\ncommand=nginx -g '\''daemon off;'\''\nautostart=true\nautorestart=true\nstdout_logfile=/dev/stdout\nstdout_logfile_maxbytes=0\nstderr_logfile=/dev/stderr\nstderr_logfile_maxbytes=0\n' > /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 8000
 USER appuser
